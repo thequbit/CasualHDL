@@ -215,6 +215,10 @@ lost in the noise ...
                     
                 else
                     
+                    -- there is no need to gat this operation, just
+                    -- let it free run. (note: this will increase the owier
+                    -- consuption of your design, if that is up concern
+                    -- then gate it with a s_do_multiply signal)
                     r_c <= i_a * i_b;
                     
                 end if;
