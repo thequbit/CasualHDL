@@ -25,46 +25,86 @@ of each of the large buses for s_count and, i_a, i_b, and r_c.  Your state machi
 ends up being WAY bigger on chip that you would expect it to be, and it will run
 much slower than it could, since there are more signals to route.
 
-    -- state machine process;
-    process(i_clk)
+    
+    library IEEE;
+    use IEEE.STD_LOGIC_1164.ALL;
+    use IEEE.NUMERIC_STD.ALL;
+    use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
+    entity multiplier_bad is
+        port (
+            i_clk : in STD_LOGIC;
+            i_reset : in STD_LOGIC;
+            i_start : in STD_LOGIC;
+            i_count_max : in STD_LOGIC_VECTOR(31 downto 0);
+            i_a : in STD_LOGIC_VECTOR (31 downto 0);
+            i_b : in STD_LOGIC_VECTOR (31 downto 0);
+            o_c : out STD_LOGIC_VECTOR (63 downto 0);
+            o_dv : out STD_LOGIC
+        );
+    end multiplier_bad;
+
+    architecture Behavioral of multiplier_bad is
+
+        type state_type is (
+            idle,
+            wait_for_count,
+            multiply,
+            finished
+        );
+        signal state : state_type := idle;
+
+        signal s_count : std_logic_vector(31 downto 0) := (others => '0');
+        signal r_c : std_logic_vector(63 downto 0) := (others => '0');
+        signal r_dv : std_logic := '0';
+
     begin
-        if (rising_edge( i_clk ) ) then
-            if ( i_reset = '1' ) then
-                -- reset values
-                s_count <= (others => '0');
-                r_c <= (others => '0');
-                r_dv <= '0';
-            else
-                -- defaults
-                s_count <= s_count;
-                r_c <= (others => '0'); -- output from multiply (SUPER BAD!)
-                r_dv <= '0'; -- output value for data valid, asserted high
-            
-                -- state machine
-                case state is
-                    when idle
-                        s_count <= (others => '0'); -- BAD!
-                        if ( i_start = '1' ) then
-                            state <= wait_for_count;
-                        end if;
-                    when wait_for_count
-                        s_count <= s_count + '1'; -- BAD!
-                        if ( s_count == i_count_max ) then -- BAD!
-                            state <= multiply
-                        end if;
-                    when multiply =>
-                        r_c <= i_a * i_b; -- SUPER BAD!
-                        state <= finished;
-                    when finished =>
-                        r_dv <= '1';
-                        state <= idle;
-                    when others =>
-                        null;
-                end case;
+
+        o_c <= r_c;
+        o_dv <= r_dv;
+
+        -- state machine process;
+        process(i_clk)
+        begin
+            if (rising_edge( i_clk ) ) then
+                if ( i_reset = '1' ) then
+                    -- reset values
+                    s_count <= (others => '0');
+                    r_c <= (others => '0');
+                    r_dv <= '0';
+                else
+                    -- defaults
+                    s_count <= s_count;
+                    r_c <= (others => '0'); -- output from multiply (SUPER BAD!)
+                    r_dv <= '0'; -- output value for data valid, asserted high
+        
+                    -- state machine
+                    case state is
+                        when idle =>
+                            s_count <= (others => '0'); -- BAD!
+                            if ( i_start = '1' ) then
+                                state <= wait_for_count;
+                            end if;
+                        when wait_for_count =>
+                            s_count <= s_count + '1'; -- BAD!
+                            if ( s_count = i_count_max ) then -- BAD!
+                                state <= multiply;
+                            end if;
+                        when multiply =>
+                            r_c <= i_a * i_b; -- SUPER BAD!
+                            state <= finished;
+                        when finished =>
+                            r_dv <= '1';
+                            state <= idle;
+                        when others =>
+                            null;
+                    end case;
+                end if;
             end if;
-        end if;
-    end process;
- 
+        end process;
+
+    end Behavioral;
+
     
 This ***BAD*** code produced this utalization with 32 bit inputs and 64 bit output:
 
@@ -100,88 +140,129 @@ the DSP48 primitive is always performing the multiplication), however it is a tr
 that is usually acceptable (an increase of a few mW in a multi-watt design should be 
 lost in the noise ...
      
-     -- state machine process
-    process( i_clk ) 
-    begin
-        if ( rising_edge( i_clk ) ) then
-            if ( i_reset = '1' ) then
-                -- reset values
-                s_reset_count <= '0';
-                s_do_multiply <= '0';
-                r_dv <= '0';
-            else
-                -- defaults
-                s_reset_count <= '0'; -- resets the counter if asserted high
-                s_do_multiply <= '0'; -- performs the multiplication if asserted high
-                r_dv <= '0'; -- output value for data valid, asserted high
-                
-                -- state machine
-                case state is
-                    when idle =>
-                        s_reset_count <= '1';
-                        if ( i_start = '1' ) then
-                            state <= wait_for_count;
-                        end if;
-                    when wait_for_count =>
-                        if ( s_done_counting = '1' ) then
-                            state <= multiply;
-                        end if;
-                    when multiply =>
-                        -- note we actually don't do anything here, it
-                        -- is a dummy state because the multiply takes 2
-                        -- clock cycles ( multiply + finished )
-                        state <= finished;
-                    when finished =>
-                        r_dv <= '1';
-                        state <= idle;
-                    when others =>
-                        null; -- we cover all our cases.
-                end case;
-            end if;
-        end if;
-    end process;
     
-    -- counter process
-    process( i_clk ) 
+    library IEEE;
+    use IEEE.STD_LOGIC_1164.ALL;
+    use IEEE.NUMERIC_STD.ALL;
+    use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
+    entity multiplier is
+        port (
+            i_clk : in STD_LOGIC;
+            i_reset : in STD_LOGIC;
+            i_start : in STD_LOGIC;
+            i_count_max : in STD_LOGIC_VECTOR(31 downto 0);
+            i_a : in STD_LOGIC_VECTOR (31 downto 0);
+            i_b : in STD_LOGIC_VECTOR (31 downto 0);
+            o_c : out STD_LOGIC_VECTOR (63 downto 0);
+            o_dv : out STD_LOGIC
+        );
+    end multiplier;
+
+    architecture Behavioral of multiplier is
+
+        type state_type is (
+            idle,
+            wait_for_count,
+            multiply,
+            finished
+        );
+        signal state : state_type := idle;
+
+        signal s_count : std_logic_vector(31 downto 0) := (others => '0');
+        signal s_reset_count : std_logic := '0';
+        signal s_done_counting : std_logic := '0';
+        signal r_c : std_logic_vector(63 downto 0) := (others => '0');
+        signal r_dv : std_logic := '0';
+        
     begin
-        if ( rising_edge( i_clk ) ) then
-            if ( i_reset = '1' ) then
-                s_count <= (others => '0');
-                s_done_counting <= '0';
-            else
-                -- defaults
-                s_count <= s_count;
-                s_done_counting <= '0';
-            
-                -- counter logic
-                if ( s_reset_count = '1' ) then
+
+        o_c <= r_c;
+        o_dv <= r_dv;
+
+        process( i_clk ) 
+        begin
+            if ( rising_edge( i_clk ) ) then
+                if ( i_reset = '1' ) then
+                    -- reset values
                     s_count <= (others => '0');
-                -- we do 1 less than the count because we are delayed by one from the state
-                -- machine logic.
-                elsif ( s_count = i_count_max - '1') then 
-                    s_done_counting <= '1';
+                    s_done_counting <= '0';
                 else
-                    s_count <= s_count + '1';
+                   -- defaults
+                    s_count <= s_count;
+                    s_done_counting <= '0';
+        
+                    -- counter logic
+                    if ( s_reset_count = '1' ) then
+                        s_count <= (others => '0');
+                    -- we do 1 less than the count because we are delayed by one from the state
+                    -- machine logic.
+                    elsif ( s_count = i_count_max - '1') then 
+                        s_done_counting <= '1';
+                    else
+                        s_count <= s_count + '1';
+                    end if;
                 end if;
             end if;
-        end if;
-    end process;
-    
-    -- multiplier process
-    process( i_clk ) 
-    begin
-        if ( rising_edge( i_clk ) ) then
-            if ( i_reset = '1' ) then
-                r_c <= (others => '0');
-            else
-                -- always be multiplying.  Yes, it will cost you power, but
-                -- your design will run MUCH faster.  the DSP48 blocks
-                -- in the FPGA fabric don't like to be wrapped in too
-                -- much logic.
-                r_c <= i_a * i_b;
+        end process;
+
+        process( i_clk ) 
+        begin
+            if ( rising_edge( i_clk ) ) then
+                if ( i_reset = '1' ) then
+                    
+                    r_c <= (others => '0');
+                    
+                else
+                    
+                    r_c <= i_a * i_b;
+                    
+                end if;
             end if;
-        end if;
-    end process;
+        end process;
+        
+        process( i_clk ) 
+            begin
+                if ( rising_edge( i_clk ) ) then
+                    if ( i_reset = '1' ) then
+                        
+                        -- reset values
+                        s_reset_count <= '0'; 
+                        
+                        r_dv <= '0'; 
+                        
+                    else
+                        
+                        -- defaults
+                        s_reset_count <= '0'; 
+                        
+                        r_dv <= '0'; 
+                        
+                        -- state machine
+                        case state is
+                            when idle =>
+                                if ( i_start = '1' ) then
+                                    state <= wait_for_count;
+                                end if;
+                            when wait_for_count =>
+                                if ( s_done_counting = '1' ) then
+                                    state <= multiply;
+                                end if;
+                            when multiply =>
+                                state <= finished;
+                            when finished =>
+                                r_dv <= '1';
+                                state <= idle;
+                            when others => 
+                                null;
+                        end case;
+                        
+                    end if;
+                end if;
+            end process;
+
+    end Behavioral;
+
     
 This "correct" code produced this utalization with the same 32 bit inputs and 64 bit outputs:
 
