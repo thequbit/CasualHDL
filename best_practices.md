@@ -64,6 +64,31 @@ much slower than it could, since there are more signals to route.
             end if;
         end if;
     end process;
+ 
+    
+This ***BAD*** code produced this utalization with 32 bit inputs and 64 bit output:
+
+    +-------------------------+------+-------+-----------+-------+
+    |        Site Type        | Used | Fixed | Available | Util% |
+    +-------------------------+------+-------+-----------+-------+
+    | Slice LUTs*             |  141 |     0 |     17600 |  0.80 |
+    |   LUT as Logic          |  141 |     0 |     17600 |  0.80 |
+    |   LUT as Memory         |    0 |     0 |      6000 |  0.00 |
+    | Slice Registers         |   99 |     0 |     35200 |  0.28 |
+    |   Register as Flip Flop |   99 |     0 |     35200 |  0.28 |
+    |   Register as Latch     |    0 |     0 |     35200 |  0.00 |
+    | F7 Muxes                |    0 |     0 |      8800 |  0.00 |
+    | F8 Muxes                |    0 |     0 |      4400 |  0.00 |
+    +-------------------------+------+-------+-----------+-------+
+    
+    +----------------+------+-------+-----------+-------+
+    |    Site Type   | Used | Fixed | Available | Util% |
+    +----------------+------+-------+-----------+-------+
+    | DSPs           |    4 |     0 |        80 |  5.00 |
+    |   DSP48E1 only |    4 |       |           |       |
+    +----------------+------+-------+-----------+-------+
+    
+    Worse reported time delay: 11.229ns, or 89.055MHz
      
 Example VHDL state machine using only single bit signals:
 
@@ -157,8 +182,46 @@ lost in the noise ...
             end if;
         end if;
     end process;
+    
+This "correct" code produced this utalization with the same 32 bit inputs and 64 bit outputs:
+
+    +-------------------------+------+-------+-----------+-------+
+    |        Site Type        | Used | Fixed | Available | Util% |
+    +-------------------------+------+-------+-----------+-------+
+    | Slice LUTs*             |  126 |     0 |     17600 |  0.71 |
+    |   LUT as Logic          |  126 |     0 |     17600 |  0.71 |
+    |   LUT as Memory         |    0 |     0 |      6000 |  0.00 |
+    | Slice Registers         |   70 |     0 |     35200 |  0.19 |
+    |   Register as Flip Flop |   70 |     0 |     35200 |  0.19 |
+    |   Register as Latch     |    0 |     0 |     35200 |  0.00 |
+    | F7 Muxes                |    0 |     0 |      8800 |  0.00 |
+    | F8 Muxes                |    0 |     0 |      4400 |  0.00 |
+    +-------------------------+------+-------+-----------+-------+
+    
+    +----------------+------+-------+-----------+-------+
+    |    Site Type   | Used | Fixed | Available | Util% |
+    +----------------+------+-------+-----------+-------+
+    | DSPs           |    4 |     0 |        80 |  5.00 |
+    |   DSP48E1 only |    4 |       |           |       |
+    +----------------+------+-------+-----------+-------+
+    
+    Worse reported time delay: 7.02ns, or 142.450MHz
+    
 The first example will take up much more space in the FPGA fabric, and will run
 slower, that is the maximum clock rate will be much lower.   The second will
 produce a design that is smaller and faster.  Note, though, that it is more code.
 Just because there is more VHDL, does not mean that the design itself will not 
 be smaller.
+
+The numbers for comparison:
+
+    +--------------+---------+--------+----------------+
+    |              |    BAD  |    GOOD  |  Difference  |
+    +--------------+---------+----------+--------------+
+    |  LUTs        |    141  |     126  |      -10.6%  |    
+    |  Registers   |     99  |      70  |      -29.3%  |
+    |  Clock Rate  |  89Mhz  |  142Mhz  |      +59.6%  |
+    +--------------+---------+----------+--------------+
+    
+Moral of the story: Don't have anything more than single bits coming in and out
+of your state machines!
