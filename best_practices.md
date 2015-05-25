@@ -21,7 +21,7 @@ signals.  We will have four states:
 This is ***WRONG***! DO NOT DO IT THIS WAY!  Here, we see that the counter and the
 multiplier both within the state machine logic.  This is bad.  Don't do this.  This
 causes lots of Flip Flops to be used to handle all of the state logic for each bit
-of each of the large busses for s_count and, i_a, i_b, and r_c.  Your state machine
+of each of the large buses for s_count and, i_a, i_b, and r_c.  Your state machine
 ends up being WAY bigger on chip that you would expect it to be, and it will run
 much slower than it could, since there are more signals to route.
 
@@ -69,9 +69,9 @@ Example VHDL state machine using only single bit signals:
 
 Below is the way you should be doing your state machines.  Only single input and output
 signals (bits) from the state machine.  This is more VHDL code, however results in less
-Flip Flots and LUTs used, and thus a faster design.  Note that we are just multiplying
+Flip Flops and LUTs used, and thus a faster design.  Note that we are just multiplying
 all of the time, with no gate.  This will produce a design that takes more power (since
-the DSP48 primative is always performing the mulitiplication), however it is a trade off
+the DSP48 primitive is always performing the multiplication), however it is a trade off
 that is usually acceptable (an increase of a few mW in a multi-watt design should be 
 lost in the noise ...
      
