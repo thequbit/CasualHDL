@@ -18,6 +18,9 @@ signals.  We will have four states:
   - finished
     - asserts the r_dv signal, and returns to idle.
      
+**Note** All synth numbers are with Vivado 2014.4 targeting the Avnet MicroZed 
+7020 SoM.
+
 This is ***WRONG***! DO NOT DO IT THIS WAY!  Here, we see that the counter and the
 multiplier both within the state machine logic.  This is bad.  Don't do this.  This
 causes lots of Flip Flops to be used to handle all of the state logic for each bit
@@ -26,10 +29,10 @@ ends up being WAY bigger on chip that you would expect it to be, and it will run
 much slower than it could, since there are more signals to route.
 
     
-    library IEEE;
-    use IEEE.STD_LOGIC_1164.ALL;
-    use IEEE.NUMERIC_STD.ALL;
-    use IEEE.STD_LOGIC_UNSIGNED.ALL;
+    library ieee;
+    use ieee.std_logic_1164.all;
+    use ieee.numeric_std.all;
+    use ieee.std_logic_unsigned.all;
 
     entity multiplier_bad is
         port (
@@ -141,10 +144,10 @@ that is usually acceptable (an increase of a few mW in a multi-watt design shoul
 lost in the noise ...
      
     
-    library IEEE;
-    use IEEE.STD_LOGIC_1164.ALL;
-    use IEEE.NUMERIC_STD.ALL;
-    use IEEE.STD_LOGIC_UNSIGNED.ALL;
+    library ieee;
+    use ieee.std_logic_1164.all;
+    use ieee.numeric_std.all;
+    use ieee.std_logic_unsigned.all;
 
     entity multiplier is
         port (
